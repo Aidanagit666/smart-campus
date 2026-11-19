@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { CheckResult, Equipment, Room } from '@/types';
 import { SAMPLE_ROOMS } from '@/data/rooms';
 import { checkAvailability, describeInterval } from '@/lib/availability';
@@ -15,6 +15,9 @@ import Panel from '@/components/Panel';
 import ResultPanel from '@/components/ResultPanel';
 import RoomSelectionPanel from '@/components/RoomSelectionPanel';
 import Timeline from '@/components/Timeline';
+import ExplanationPanel from '@/components/ExplanationPanel';
+import { explainAvailability, type ExplanationOutcome } from '@/lib/explainAvailability';
+import { createMockLlmAdapter } from '@/lib/mockLlmAdapter';
 
 const DEFAULT_START_TIME = '10:00';
 const DEFAULT_END_TIME = '11:00';
@@ -26,6 +29,9 @@ export default function App() {
   const [endTime, setEndTime] = useState(DEFAULT_END_TIME);
   const [currentTime, setCurrentTime] = useState(currentMinutesOfDay);
   const [result, setResult] = useState<CheckResult | null>(null);
+  const [explanation, setExplanation] = useState<ExplanationOutcome | null>(null);
+  const [explanationLoading, setExplanationLoading] = useState(false);
+  const explanationGeneration = useRef(0);
   const [attendeesInput, setAttendeesInput] = useState('1');
   const [requiredEquipment, setRequiredEquipment] = useState<Equipment[]>([]);
 
@@ -44,12 +50,34 @@ export default function App() {
   const candidateStart = result && !Number.isNaN(startMin) ? startMin : null;
   const candidateEnd = result && !Number.isNaN(endMin) ? endMin : null;
 
+  function clearExplanation() {
+    explanationGeneration.current += 1;
+    setExplanation(null);
+    setExplanationLoading(false);
+  }
+
+  async function handleExplain() {
+    if (!selectedRoom || !result) return;
+    const generation = ++explanationGeneration.current;
+    setExplanation(null);
+    setExplanationLoading(true);
+    const output = await explainAvailability(
+      { roomName: selectedRoom.name, start: startMin, end: endMin, result },
+      createMockLlmAdapter(),
+    );
+    if (generation !== explanationGeneration.current) return;
+    setExplanation(output);
+    setExplanationLoading(false);
+  }
+
   function handleCheck() {
     if (!selectedRoom) return;
+    clearExplanation();
     setResult(checkAvailability(selectedRoom, startMin, endMin, currentTime));
   }
 
   function handleReset() {
+    clearExplanation();
     setResult(null);
     setStartTime(DEFAULT_START_TIME);
     setEndTime(DEFAULT_END_TIME);
@@ -61,36 +89,43 @@ export default function App() {
     if (!quick) return;
     setStartTime(quick.start);
     setEndTime(quick.end);
+    clearExplanation();
     setResult(null);
   }
 
   function handleRefreshClock() {
     setCurrentTime(currentMinutesOfDay());
+    clearExplanation();
     setResult(null);
   }
 
   function handleCurrentTimeChange(value: string) {
     setCurrentTime(timeToMinutes(value));
+    clearExplanation();
     setResult(null);
   }
 
   function handleStartTimeChange(value: string) {
     setStartTime(value);
+    clearExplanation();
     setResult(null);
   }
 
   function handleEndTimeChange(value: string) {
     setEndTime(value);
+    clearExplanation();
     setResult(null);
   }
 
   function handleSelectRoom(roomId: string) {
     setSelectedRoomId(roomId);
+    clearExplanation();
     setResult(null);
   }
 
   function handleAttendeesChange(value: string) {
     setAttendeesInput(value);
+    clearExplanation();
     setResult(null);
   }
 
@@ -98,6 +133,7 @@ export default function App() {
     setRequiredEquipment((prev) =>
       prev.includes(item) ? prev.filter((e) => e !== item) : [...prev, item],
     );
+    clearExplanation();
     setResult(null);
   }
 
@@ -145,6 +181,13 @@ export default function App() {
             )}
 
             <ResultPanel result={result} duration={interval.duration} />
+            {result && selectedRoom && (
+              <ExplanationPanel
+                loading={explanationLoading}
+                outcome={explanation}
+                onExplain={handleExplain}
+              />
+            )}
 
             {selectedRoom && <BookingList room={selectedRoom} />}
           </section>
