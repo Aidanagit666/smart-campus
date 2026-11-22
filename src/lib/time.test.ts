@@ -4,6 +4,7 @@ import {
   minutesToTime,
   percentOfDay,
   quickSetTimes,
+  timeToMinutes,
 } from '@/lib/time';
 
 describe('time helpers', () => {
@@ -40,5 +41,11 @@ describe('time helpers', () => {
     expect(durationLabel(0)).toBe('0 min');
     expect(durationLabel(60)).toBe('1 hr');
     expect(durationLabel(121)).toBe('2 hr 1 min');
+  });
+    it('rejects invalid clock times', () => {
+    expect(Number.isNaN(timeToMinutes('25:90'))).toBe(true);
+    expect(Number.isNaN(timeToMinutes('12:99'))).toBe(true);
+    expect(Number.isNaN(timeToMinutes('abc'))).toBe(true);
+    expect(timeToMinutes('10:30')).toBe(630);
   });
 });

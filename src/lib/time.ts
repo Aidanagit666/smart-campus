@@ -19,10 +19,25 @@ export function minutesToTime(min: number): string {
 
 export function timeToMinutes(time: string): number {
   const parts = time.split(':');
-  if (parts.length < 2) return NaN;
+
+  if (parts.length !== 2) return NaN;
+
   const h = Number(parts[0]);
   const m = Number(parts[1]);
-  if (Number.isNaN(h) || Number.isNaN(m)) return NaN;
+
+  if (
+    !Number.isInteger(h) ||
+    !Number.isInteger(m) ||
+    h < 0 ||
+    h > 23 ||
+    m < 0 ||
+    m > 59 ||
+    parts[0].trim() === '' ||
+    parts[1].trim() === ''
+  ) {
+    return NaN;
+  }
+
   return h * 60 + m;
 }
 
