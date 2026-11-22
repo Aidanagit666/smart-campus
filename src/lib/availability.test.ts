@@ -206,4 +206,12 @@ describe('F5 scope: only the selected room bookings are checked', () => {
     expect(result.reasons).toEqual([]);
   });
 });
+describe('R4: non-finite interval validation', () => {
+  it('rejects non-finite interval values', () => {
+    expect(describeInterval(-Infinity, 600).isValid).toBe(false);
+    expect(describeInterval(600, Infinity).isValid).toBe(false);
+    expect(describeInterval(Infinity, 600).isValid).toBe(false);
+    expect(describeInterval(600, -Infinity).isValid).toBe(false);
+  });
+});
 

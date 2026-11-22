@@ -58,3 +58,10 @@ describe('attendee input parsing', () => {
     expect(parseAttendees('-3')).toBeNull();
   });
 });
+describe('R5: large attendee count validation', () => {
+  it('rejects unsafe attendee numbers', () => {
+    expect(parseAttendees('9007199254740992')).toBeNull();
+    expect(parseAttendees('1'.padEnd(400, '0'))).toBeNull();
+    expect(parseAttendees('25')).toBe(25);
+  });
+});

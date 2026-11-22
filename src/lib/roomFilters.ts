@@ -4,7 +4,7 @@ export function parseAttendees(input: string): number | null {
   const trimmed = input.trim();
   if (!/^\d+$/.test(trimmed)) return null;
   const value = Number(trimmed);
-  return value >= 1 ? value : null;
+  return Number.isSafeInteger(value) && value >= 1 ? value : null;
 }
 
 export function filterRooms(
